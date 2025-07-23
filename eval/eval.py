@@ -13,7 +13,7 @@ sys.path.insert(
 import torch
 import numpy as np
 import imageio
-import skimage.measure
+#import skimage.measure
 import util
 from data import get_split_dataset
 from model import make_model
@@ -22,6 +22,8 @@ import cv2
 import tqdm
 import ipdb
 import warnings
+from skimage.metrics import structural_similarity as ssim
+from skimage.metrics import peak_signal_noise_ratio as psnr
 
 #  from pytorch_memlab import set_target_gpu
 #  set_target_gpu(9)
@@ -318,17 +320,17 @@ with torch.no_grad():
                 images_gt.permute(0, 2, 3, 1).contiguous().numpy()
             )  # (NV-NS, H, W, 3)
             for view_idx in range(n_gen_views):
-                ssim = skimage.measure.compare_ssim(
+                ssim_ = ssim(
                     all_rgb[view_idx],
                     rgb_gt_all[view_idx],
                     multichannel=True,
                     data_range=1,
                 )
-                psnr = skimage.measure.compare_psnr(
+                psnr_ = psnr(
                     all_rgb[view_idx], rgb_gt_all[view_idx], data_range=1
                 )
-                curr_ssim += ssim
-                curr_psnr += psnr
+                curr_ssim += ssim_
+                curr_psnr += psnr_
 
                 if args.write_compare:
                     out_file = os.path.join(

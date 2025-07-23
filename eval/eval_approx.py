@@ -17,12 +17,14 @@ sys.path.insert(
 import torch
 import numpy as np
 import imageio
-import skimage.measure
+#import skimage.measure
 import util
 from data import get_split_dataset
 from render import NeRFRenderer
 from model import make_model
 import tqdm
+from skimage.metrics import structural_similarity as ssim
+from skimage.metrics import peak_signal_noise_ratio as psnr
 
 
 def extra_args(parser):
@@ -100,7 +102,7 @@ random_source = NS == 1 and source[0] == -1
 with torch.no_grad():
     for data in tqdm.tqdm(data_loader, total=len(data_loader)):
         images = data["images"]  # (SB, NV, 3, H, W)
-        masks = data["masks"]  # (SB, NV, 1, H, W)
+        # masks = data["masks"]  # (SB, NV, 1, H, W)
         poses = data["poses"]  # (SB, NV, 4, 4)
         focal = data["focal"][0]
 
@@ -140,14 +142,14 @@ with torch.no_grad():
         rgb_gt_all = images_gt.permute(0, 2, 3, 1).contiguous().numpy()
 
         for sb in range(SB):
-            ssim = skimage.measure.compare_ssim(
+            ssim_ = ssim(
                 rgb_fine[sb], rgb_gt_all[sb], multichannel=True, data_range=1
             )
-            psnr = skimage.measure.compare_psnr(
+            psnr_ = psnr(
                 rgb_fine[sb], rgb_gt_all[sb], data_range=1
             )
-            total_ssim += ssim
-            total_psnr += psnr
+            total_ssim += ssim_
+            total_psnr += psnr_
         cnt += SB
         print("curr psnr", total_psnr / cnt, "ssim", total_ssim / cnt)
 print("final psnr", total_psnr / cnt, "ssim", total_ssim / cnt)
